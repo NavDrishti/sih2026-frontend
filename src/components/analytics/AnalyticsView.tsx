@@ -57,7 +57,7 @@ export const AnalyticsView: React.FC = () => {
           <div className="flex items-center gap-2">
             <BarChart2 className="w-5 h-5 text-hazard-cyan" />
             <h2 className="text-base font-bold text-white tracking-widest uppercase">
-              REFINERY SIF PRECURSOR ANALYTICS & HISTORICAL TRENDS
+              NAV DRISHTI • SIF PRECURSOR ANALYTICS & HISTORICAL TRENDS
             </h2>
           </div>
           <p className="text-xs text-industrial-400 font-sans mt-0.5">

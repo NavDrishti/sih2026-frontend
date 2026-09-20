@@ -8,7 +8,7 @@ export const Footer: React.FC = () => {
         <div className="flex items-center gap-3 text-[11px]">
           <div className="flex items-center gap-1.5 text-industrial-300 font-semibold uppercase tracking-wider">
             <Shield className="w-3.5 h-3.5 text-hazard-cyan" />
-            <span>REFINERY SIF INTELLIGENCE • PROTOTYPE</span>
+            <span>NAV DRISHTI • PROTOTYPE</span>
           </div>
           <span className="text-industrial-700 hidden sm:inline">|</span>
           <span className="text-industrial-500 text-[10px]">

@@ -1,5 +1,5 @@
 {
-  "name": "refinery-sif-intelligence",
+  "name": "nav-drishti",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "desktop": "electron .",
-    "desktop:pack": "electron-packager . \"RefinerySIFIntelligence\" --platform=win32 --arch=x64 --out=laptop_app --overwrite --ignore=\"tools|android|mobile_apk\""
+    "desktop:pack": "electron-packager . \"NavDrishti\" --platform=win32 --arch=x64 --out=laptop_app --overwrite --ignore=\"tools|android|mobile_apk\""
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

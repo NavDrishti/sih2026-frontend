@@ -72,7 +72,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white tracking-widest text-sm uppercase">
-                  REFINERY SIF INTELLIGENCE
+                  NAV DRISHTI
                 </span>
                 <span className="hidden sm:inline-block px-1.5 py-0.2 bg-industrial-800 text-[10px] text-industrial-400 border border-industrial-700">
                   v2.4-RC
