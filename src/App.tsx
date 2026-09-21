@@ -15,6 +15,7 @@ import { ReportsPageView } from './components/pages/ReportsPageView';
 
 import { NotificationDrawer } from './components/common/NotificationDrawer';
 import { LoginModal } from './components/auth/LoginModal';
+import { MobileBottomBar } from './components/layout/MobileBottomBar';
 import {
   SentinelObservation,
   SENTINEL_OBSERVATIONS
@@ -63,6 +64,7 @@ export const App: React.FC = () => {
   // Modals & Drawers
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   // Toast status alert
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -156,6 +158,7 @@ export const App: React.FC = () => {
   const handleTabChange = (tab: SentinelTab) => {
     setActiveTab(tab);
     setActiveObservation(null);
+    setIsMobileDrawerOpen(false);
     if (tab !== 'OBSERVATIONS') {
       setExplorerFilter({});
     }
@@ -164,14 +167,16 @@ export const App: React.FC = () => {
   const unreadAlertsCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 flex font-sans transition-colors duration-200">
-      {/* Dark Left Sidebar */}
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 flex font-sans transition-colors duration-200 overflow-x-hidden">
+      {/* Left Sidebar (Desktop Pinned + Mobile Slide-over Drawer) */}
       <SentinelSidebar
         activeTab={activeTab}
         onSelectTab={handleTabChange}
         currentUser={currentUser}
         onOpenUserModal={() => setIsLoginModalOpen(true)}
         isBackendOnline={isBackendOnline}
+        isMobileOpen={isMobileDrawerOpen}
+        onCloseMobile={() => setIsMobileDrawerOpen(false)}
       />
 
       {/* Main Content Area */}
@@ -185,10 +190,11 @@ export const App: React.FC = () => {
           onToggleTheme={handleToggleTheme}
           unreadAlertsCount={unreadAlertsCount}
           onOpenNotifications={() => setIsNotificationOpen(true)}
+          onToggleMobileDrawer={() => setIsMobileDrawerOpen(prev => !prev)}
         />
 
         {/* Page Content Container */}
-        <main className="flex-1 px-6 py-5 max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 px-3 sm:px-6 py-3 sm:py-5 pb-24 lg:pb-6 max-w-[1600px] w-full mx-auto min-w-0">
           {activeObservation ? (
             <ObservationDetailView
               observation={activeObservation}
@@ -306,11 +312,19 @@ export const App: React.FC = () => {
 
       {/* Status Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-8 right-8 z-50 px-4 py-3 bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-700 text-xs font-medium flex items-center gap-2 animate-bounce">
+        <div className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-50 px-4 py-3 bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-700 text-xs font-medium flex items-center gap-2 animate-bounce">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* Mobile Bottom Navigation Bar (thumb-accessible for phones) */}
+      <MobileBottomBar
+        activeTab={activeTab}
+        onSelectTab={handleTabChange}
+        onToggleMobileDrawer={() => setIsMobileDrawerOpen(prev => !prev)}
+        isMobileDrawerOpen={isMobileDrawerOpen}
+      />
     </div>
   );
 };
