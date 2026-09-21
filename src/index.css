@@ -46,13 +46,18 @@ html.dark {
   --chart-axis: #647b9f;
   --chart-bar: #212c40;
   --color-pie-stroke: #0a0d14;
+
+  --color-sentinel-canvas: 11 17 32;       /* #0b1120 */
+  --color-sentinel-card: 19 31 55;          /* #131f37 */
+  --color-sentinel-card-border: 30 41 59;   /* #1e293b */
+  --color-sentinel-border: 30 41 59;
 }
 
 html.light {
   /* =========================================================================
      WHITE THEME (CLEAN HIGH-CONTRAST LIGHT MODE)
      ========================================================================= */
-  --color-industrial-950: 255 255 255; /* #ffffff - pure white canvas */
+  --color-industrial-950: 248 250 252; /* #f8fafc - soft clean background */
   --color-industrial-900: 255 255 255; /* #ffffff - crisp white cards & navbars */
   --color-industrial-850: 248 250 252; /* #f8fafc - light elevated hover */
   --color-industrial-800: 226 232 240; /* #e2e8f0 - subtle structural border */
@@ -65,6 +70,11 @@ html.light {
   --color-industrial-200: 15 23 42;    /* #0f172a - deep contrast black/slate text */
   --color-industrial-100: 0 0 0;       /* #000000 - pure black headings */
 
+  --color-sentinel-canvas: 248 250 252;    /* #f8fafc */
+  --color-sentinel-card: 255 255 255;       /* #ffffff */
+  --color-sentinel-card-border: 226 232 240;/* #e2e8f0 */
+  --color-sentinel-border: 226 232 240;     /* #e2e8f0 */
+
   --hazard-cyan: 2 132 199;            /* High-contrast deep cyan #0284c7 */
   --hazard-amber: 180 83 9;            /* High-contrast deep amber #b45309 */
   --hazard-red-dark: 254 226 226;      /* #fee2e2 - clean light red alert badge */
@@ -76,12 +86,12 @@ html.light {
   --hazard-green-dark: 209 250 229;    /* #d1fae5 */
   --hazard-green-border: 167 243 208;  /* #a7f3d0 */
 
-  --color-bg-base: #ffffff;
+  --color-bg-base: #f8fafc;
   --color-text-base: #0f172a;
   --color-panel-bg: #ffffff;
-  --color-panel-border: #cbd5e1;
-  --color-panel-hover-bg: #f8fafc;
-  --color-panel-hover-border: #94a3b8;
+  --color-panel-border: #e2e8f0;
+  --color-panel-hover-bg: #f1f5f9;
+  --color-panel-hover-border: #cbd5e1;
   --color-grid-line: rgba(226, 232, 240, 0.8);
   --color-dots: rgba(148, 163, 184, 0.25);
   --color-scrollbar-track: #f1f5f9;
@@ -109,67 +119,39 @@ html.light {
 }
 
 /* =========================================================================
-   WHITE THEME SPECIFIC STYLING & TEXT CONTRAST FIXES
+   LIGHT THEME (DAY MODE) HIGH-CONTRAST TYPOGRAPHY & INTERFACES
    ========================================================================= */
 
-/* Adapt default white text to high-contrast charcoal/black on light background */
-html.light .text-white {
+html.light {
+  color-scheme: light;
+}
+
+html.light body {
+  background-color: #f8fafc;
   color: #0f172a;
 }
 
-/* Preserve pure crisp white text on colored buttons & solid alert badges */
-html.light .bg-hazard-red,
-html.light .bg-hazard-red *,
-html.light .bg-hazard-amber,
-html.light .bg-hazard-amber *,
-html.light .bg-hazard-cyan,
-html.light .bg-hazard-cyan *,
-html.light [class*="bg-hazard-red"],
-html.light [class*="bg-hazard-red"] *,
-html.light [class*="bg-red-"],
-html.light [class*="bg-red-"] *,
-html.light [class*="bg-amber-600"],
-html.light [class*="bg-amber-600"] *,
-html.light [class*="bg-emerald-"],
-html.light [class*="bg-emerald-"] *,
-html.light [class*="bg-safety-"],
-html.light [class*="bg-safety-"] *,
-html.light button.bg-hazard-red,
-html.light .text-keep-white {
-  color: #ffffff !important;
-}
-
-/* Give cards and panels in White theme a subtle crisp elevation */
+/* Ensure clean card and panel elevation in Day mode */
 html.light .bg-industrial-900 {
   background-color: #ffffff;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
-html.light header {
-  background-color: rgba(255, 255, 255, 0.96) !important;
-  border-bottom-color: #e2e8f0 !important;
-}
-
-html.light header nav {
-  background-color: #f8fafc !important;
-  border-top: 1px solid #e2e8f0;
-}
-
-/* Form controls in White theme */
+/* Form controls in Day mode */
 html.light input,
 html.light textarea,
 html.light select {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: #cbd5e1 !important;
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
 html.light input::placeholder,
 html.light textarea::placeholder {
-  color: #94a3b8 !important;
+  color: #94a3b8;
 }
 
-/* Subtle tech-label readability in light mode */
+/* Tech-label readability in light mode */
 html.light .tech-label {
   color: #475569;
 }

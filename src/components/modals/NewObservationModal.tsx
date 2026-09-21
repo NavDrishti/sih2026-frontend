@@ -13,9 +13,12 @@ import {
   Layers, 
   ShieldAlert,
   ArrowRight,
-  FileText
+  FileText,
+  Sliders,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
-import { RefineryUnit, ActivityType, SafetyReport } from '../../types/safety';
+import { RefineryUnit, ActivityType, SafetyReport, Refinery10Parameters, UserProfile } from '../../types/safety';
 import { calculateSIFScore, generateSIFExplanations } from '../../services/sifScoringService';
 import { IndustrialBadge } from '../common/IndustrialBadge';
 
@@ -23,20 +26,66 @@ interface NewObservationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmitReport: (newReport: SafetyReport) => void;
+  currentUser?: UserProfile;
 }
 
 export const NewObservationModal: React.FC<NewObservationModalProps> = ({
   isOpen,
   onClose,
-  onSubmitReport
+  onSubmitReport,
+  currentUser
 }) => {
   const [narrative, setNarrative] = useState('');
   const [unit, setUnit] = useState<RefineryUnit>('DHT');
   const [activity, setActivity] = useState<ActivityType>('Line Breaking');
   const [equipment, setEquipment] = useState('P-204');
-  const [reporterRole, setReporterRole] = useState('Senior Mechanical Technician');
+  const [equipmentFull, setEquipmentFull] = useState('FEED PUMP P-204 SUCTION SPOOL');
   const [photoUploaded, setPhotoUploaded] = useState(false);
   
+  // 10-Parameter Expansion State
+  const [showParametersAccordion, setShowParametersAccordion] = useState(false);
+  const [paramState, setParamState] = useState<Refinery10Parameters>({
+    refinery_unit: 'DHT',
+    process_area: 'Feed Section',
+    equipment: 'Pump',
+    specific_location: 'P-204 Suction Flange',
+    activity_type: 'Line Breaking',
+    task: 'Flange unbolting for maintenance',
+    operating_condition: 'Maintenance',
+    routine_status: 'Non-routine',
+    safety_critical_task: true,
+    ua_uc_type: 'Unsafe Act (UA)',
+    ua_uc_category: 'Isolation/LOTO violation',
+    ua_uc_subcategory: 'Unbolting line before zero energy verification',
+    process_hazard: 'High-Pressure Hydrocarbon',
+    hazard_mechanism: 'Hydrocarbon Release / Flange Spray',
+    process_material: 'Diesel',
+    energy_source: 'Pressure',
+    pressure_condition: 'High Pressure (2–50 bar)',
+    temperature_condition: 'Elevated (>60°C)',
+    persons_exposed: 2,
+    exposure_type: 'Hydrocarbon Exposure',
+    exposure_duration: '1–5 minutes',
+    barrier_type: 'Double Block and Bleed',
+    barrier_status: 'Failed',
+    critical_control_failure: true,
+    performance_influencing_factor: 'Turnaround Workload',
+    communication_issue: true,
+    supervision_issue: false,
+    actual_consequence: 'No Injury',
+    potential_consequence: 'Fatality',
+    high_potential_event: true,
+    sif_potential: true,
+    sif_mechanism: 'High-Pressure Hydrocarbon Release / Line of Fire',
+    proximity_to_harm: 5,
+    fatality_pathway: 'Pressurized diesel line → unverified isolation → flange opened → spray mist → worker in line of fire → potential fatality',
+    immediate_action: 'Work Stopped',
+    work_stopped: true,
+    equipment_isolated: true,
+    supervisor_notified: true,
+    observation_status: 'Under Investigation'
+  });
+
   // Voice Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -44,19 +93,17 @@ export const NewObservationModal: React.FC<NewObservationModalProps> = ({
   // AI Pipeline Execution state
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const [generatedReport, setGeneratedReport] = useState<SafetyReport | null>(null);
 
   const pipelineSteps = [
     'TRANSCRIPT GENERATED',
     'ENTITIES EXTRACTED',
     'HAZARD IDENTIFIED',
-    'BARRIERS IDENTIFIED',
-    'SIF PARAMETERS SCORED',
-    'IOGP RULE MAPPED',
-    'RISK CLASSIFICATION GENERATED'
+    'BARRIERS EVALUATED',
+    '10 REFINERY PARAMETERS MAPPED',
+    'SIF PROXIMITY SCORED',
+    'RISK CLASSIFICATION FINALIZED'
   ];
 
-  // Voice recording timer simulation
   useEffect(() => {
     let timer: any;
     if (isRecording) {
@@ -77,15 +124,13 @@ export const NewObservationModal: React.FC<NewObservationModalProps> = ({
 
   const handleStopVoice = () => {
     setIsRecording(false);
-    // Fill realistic voice transcript if empty
     if (!narrative.trim()) {
       setNarrative(
-        "Voice Transcript: Technician cracked the companion bolts on the 6-inch discharge line at pump P-204 before checking the bleed valve. Small weeping of hot gas oil escalated into a pressurized spray onto the deck because the upstream block valve passed and no blind spade was swung."
+        "Voice Transcript: Technician cracked companion bolts on 6-inch discharge line at pump P-204 before checking the bleed valve. Weeping of hot diesel escalated into pressurized spray onto deck because upstream block valve passed and no blind spade was swung."
       );
     }
   };
 
-  // Generate automated ID formatted as REF-YYYYMMDD-XXXXXX
   const generateObservationId = (): string => {
     const now = new Date();
     const yyyy = now.getFullYear();
@@ -101,7 +146,6 @@ export const NewObservationModal: React.FC<NewObservationModalProps> = ({
     setIsProcessing(true);
     setCurrentStepIndex(0);
 
-    // Realistic step-by-step pipeline sequence simulation
     const interval = setInterval(() => {
       setCurrentStepIndex((prev) => {
         if (prev < pipelineSteps.length - 1) {
@@ -112,7 +156,7 @@ export const NewObservationModal: React.FC<NewObservationModalProps> = ({
           return prev;
         }
       });
-    }, 450);
+    }, 350);
   };
 
   const finishProcessing = () => {
@@ -124,7 +168,7 @@ export const NewObservationModal: React.FC<NewObservationModalProps> = ({
       hazardousMaterial: 5,
       lineBreaking: activity === 'Line Breaking' ? 5 : 3,
       controlVerification: 5,
-      proximityToHazard: 4
+      proximityToHazard: 5
     };
 
     const sifCalc = calculateSIFScore(defaultParams);
@@ -134,365 +178,388 @@ export const NewObservationModal: React.FC<NewObservationModalProps> = ({
       activity
     );
 
+    const final10Params: Refinery10Parameters = {
+      ...paramState,
+      refinery_unit: unit,
+      activity_type: activity,
+      equipment: equipment,
+      task: `Maintenance activity on ${equipment}`
+    };
+
     const report: SafetyReport = {
       report_id: newId,
       timestamp: new Date().toISOString(),
       unit,
       equipment,
-      equipment_full: `${equipment} PROCESS PIPING SPOOL`,
+      equipment_full: equipmentFull || `${equipment} PROCESS PIPING SPOOL`,
       activity,
       report_type: 'SIF Precursor',
       report_types: ['SIF Precursor', 'UC', 'UA'],
       raw_narrative: narrative,
-      ai_summary: 'Hot pressurized hydrocarbon was released during line breaking because positive isolation and zero-energy verification were not completed.',
-      confidence: 95,
-      hazards: ['Pressurized Hydrocarbon', 'Hot Gasoil (180°C)', 'Line of Fire'],
+      ai_summary: `${paramState.process_material || 'Hydrocarbon'} spray detected during ${activity} at ${equipment}. Positive isolation and zero-energy verification required immediate stop work.`,
+      confidence: 96,
+      hazards: ['Pressurized Hydrocarbon', 'Line of Fire', 'Hot Fluid (>60°C)'],
       barriers: [
-        { name: 'Double Block & Bleed', expected: 'Required', observed: 'Single valve only, passing', status: 'FAILED' },
-        { name: 'Blind / Spade', expected: 'Required', observed: 'Missing, unswung', status: 'FAILED' },
-        { name: 'Zero Energy Verification', expected: 'Required', observed: 'Not verified in field', status: 'FAILED' },
-        { name: 'PPE', expected: 'Required', observed: 'Nomex worn', status: 'VERIFIED' }
+        { name: 'Double Block & Bleed', expected: 'Required', observed: paramState.barrier_status || 'Failed', status: 'FAILED' },
+        { name: 'Physical LOTO / Padlock', expected: 'Required', observed: 'Tag only, unpadlocked', status: 'FAILED' },
+        { name: 'Zero Energy Verification', expected: 'Required', observed: 'Needle gauge unverified', status: 'NOT_VERIFIED' },
+        { name: 'PPE & Shielding', expected: 'Required', observed: 'Flame retardant suit worn', status: 'VERIFIED' }
       ],
       iogp_rule: 'Energy Isolation',
       sif_potential: true,
       sif_score: sifCalc.score,
       sif_classification: sifCalc.classification,
       severity: 'CRITICAL',
-      p2h_rating: 'P2H 5/5',
-      critical_control_failure: 'Energy isolation verification (DBB + zero energy proof)',
       causal_pathway: [
-        { step: '01', name: 'HAZARD PRESENT', description: `Hot pressurized hydrocarbon in ${equipment} piping`, isCritical: false },
-        { step: '02', name: 'BARRIER STATUS', description: 'FAILED — single valve passing; zero-energy omitted', isCritical: true },
-        { step: '03', name: 'UNSAFE ACT / CONDITION', description: 'Flange bolts loosened prior to physical zero-proof check', isCritical: true },
-        { step: '04', name: 'PHYSICAL MECHANISM', description: 'Pressurized release across flange gasket gap', isCritical: true },
-        { step: '05', name: 'POTENTIAL EXPOSURE', description: 'Technician directly in front of split flange', isCritical: true },
-        { step: '06', name: 'POTENTIAL OUTCOME', description: 'Severe 3rd-degree burns / fatality potential', isCritical: true }
+        { step: '01', name: 'HAZARDOUS ENERGY PRESENT', description: `${paramState.process_material || 'Diesel'} line under ${paramState.pressure_condition || 'High Pressure (24 bar)'}`, isCritical: true },
+        { step: '02', name: 'BARRIER FAILURE', description: `Isolation status: ${paramState.barrier_status || 'Failed'}`, isCritical: true },
+        { step: '03', name: 'UNSAFE ACT', description: 'Flange opened before verifying line zero pressure', isCritical: true },
+        { step: '04', name: 'RELEASE MECHANISM', description: 'Hydrocarbon spray atomizing onto deck', isCritical: true },
+        { step: '05', name: 'WORKER EXPOSURE', description: `${paramState.persons_exposed || 2} workers in direct line of fire`, isCritical: true },
+        { step: '06', name: 'POTENTIAL OUTCOME', description: `${paramState.potential_consequence || 'Fatality'} / Flash fire`, isCritical: true }
       ],
       sif_parameters: defaultParams,
       why_flagged: whyFlagged,
       primary_escalation_trigger: primaryEscalationTrigger,
-      reporter_role: reporterRole,
+      reporter_role: currentUser?.title || 'Field Operator',
+      created_by: currentUser?.id || 'USR-WORKER-01',
+      created_by_name: currentUser?.name || 'Rajesh Kumar',
+      status: 'Under Investigation',
       corrective_actions: [
         {
-          action_id: `ACT-${newId.replace('REF-', '')}`,
+          action_id: `ACT-${Date.now().toString().slice(-5)}`,
           report_id: newId,
-          description: `Immediately cease line breaking on ${equipment} until positive DBB isolation is reinstated and verified.`,
+          description: `Swing positive spectacle blind on ${equipment} suction spool before continuing permit`,
           priority: 'CRITICAL',
-          owner: 'Unit Operations Shift Lead',
+          owner: 'Unit Shift Superintendent',
           unit,
-          due_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+          due_date: 'Immediate / Next 2 Hours',
           status: 'OPEN'
         }
-      ]
+      ],
+      parameters: final10Params
     };
 
-    setGeneratedReport(report);
     setIsProcessing(false);
-  };
-
-  const handleCompleteFlow = () => {
-    if (generatedReport) {
-      onSubmitReport(generatedReport);
-      onClose();
-    }
+    setCurrentStepIndex(-1);
+    onSubmitReport(report);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-mono">
-      <div className="relative w-full max-w-2xl bg-industrial-950 border border-industrial-700 shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 font-mono text-xs">
+      <div className="bg-industrial-900 border border-industrial-700 w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
-        <div className="p-4 bg-industrial-900 border-b border-industrial-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 bg-hazard-red animate-critical-pulse" />
-            <h2 className="text-sm font-bold text-white tracking-widest uppercase">
-              NEW SAFETY OBSERVATION INTAKE & AI INGESTION
-            </h2>
+        <div className="px-5 py-3 bg-industrial-950 border-b border-industrial-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-hazard-red-dark border border-hazard-red flex items-center justify-center text-hazard-red">
+              <AlertOctagon className="w-4 h-4 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black text-white uppercase tracking-wider">
+                SUBMIT SAFETY OBSERVATION • 10-PARAMETER DATASET
+              </h2>
+              <p className="text-[10px] text-industrial-400 font-sans">
+                API RP 754 &bull; OSHA PSM 1910.119 &bull; SIF Precursor Classification
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-industrial-400 hover:text-white p-1">
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-industrial-800 text-industrial-400 hover:text-white transition"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Modal Content */}
-        <div className="p-4 overflow-y-auto space-y-4 text-xs">
-          {!generatedReport && !isProcessing && (
-            <>
-              {/* Form Metadata Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[10px] text-industrial-400 uppercase block mb-1">
-                    REFINERY UNIT *
-                  </label>
-                  <select
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value as RefineryUnit)}
-                    className="w-full bg-industrial-900 border border-industrial-800 p-2 text-white font-mono text-xs focus:outline-hidden focus:border-hazard-cyan"
-                  >
-                    {['DHT', 'FCC', 'SRU', 'CDU', 'Tank Farm', 'Hydrocracker', 'VDU', 'NHT'].map(u => (
-                      <option key={u} value={u}>{u}</option>
-                    ))}
-                  </select>
-                </div>
+        {/* Modal Body */}
+        <div className="flex-1 p-5 overflow-y-auto space-y-4 industrial-scroll">
+          {/* Reporter Identification Strip */}
+          <div className="p-2.5 bg-industrial-950/70 border border-industrial-800 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <div className="flex items-center gap-2">
+              <span className="text-industrial-500 uppercase">REPORTER:</span>
+              <span className="font-bold text-white">{currentUser?.name || 'Rajesh Kumar'}</span>
+              <span className="text-industrial-600">|</span>
+              <span className="text-hazard-cyan font-bold">{currentUser?.title || 'Field Operator'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-industrial-400">
+              <span>BADGE: <b className="text-industrial-200">{currentUser?.badge_id || 'OP-4492'}</b></span>
+              <span>&bull;</span>
+              <span className="text-emerald-400 font-bold">SQLITE REALTIME SYNC</span>
+            </div>
+          </div>
 
-                <div>
-                  <label className="text-[10px] text-industrial-400 uppercase block mb-1">
-                    ACTIVITY CLASS *
-                  </label>
-                  <select
-                    value={activity}
-                    onChange={(e) => setActivity(e.target.value as ActivityType)}
-                    className="w-full bg-industrial-900 border border-industrial-800 p-2 text-white font-mono text-xs focus:outline-hidden focus:border-hazard-cyan"
-                  >
-                    {[
-                      'Line Breaking',
-                      'Maintenance',
-                      'Hot Work',
-                      'Confined Space Entry',
-                      'Startup',
-                      'Shutdown',
-                      'Lifting',
-                      'Routine Operations'
-                    ].map(a => (
-                      <option key={a} value={a}>{a}</option>
-                    ))}
-                  </select>
-                </div>
+          {/* Core Observation Location & Activity */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold text-industrial-400 mb-1 uppercase">
+                01. REFINERY UNIT
+              </label>
+              <select
+                value={unit}
+                onChange={(e) => {
+                  const val = e.target.value as RefineryUnit;
+                  setUnit(val);
+                  setParamState(prev => ({ ...prev, refinery_unit: val }));
+                }}
+                className="w-full px-2.5 py-1.5 bg-industrial-950 border border-industrial-700 text-white text-xs outline-none focus:border-hazard-cyan font-sans"
+              >
+                <option value="DHT">DHT — Diesel Hydrotreater</option>
+                <option value="FCC">FCC — Fluid Catalytic Cracking</option>
+                <option value="CDU">CDU — Crude Distillation Unit</option>
+                <option value="VDU">VDU — Vacuum Distillation</option>
+                <option value="SRU">SRU — Sulfur Recovery Unit</option>
+                <option value="Tank Farm">Tank Farm &amp; Offsites</option>
+                <option value="Hydrocracker">Hydrocracker Unit</option>
+                <option value="NHT">NHT — Naphtha Hydrotreater</option>
+                <option value="Utilities">Refinery Utilities</option>
+              </select>
+            </div>
 
-                <div>
-                  <label className="text-[10px] text-industrial-400 uppercase block mb-1">
-                    EQUIPMENT TAG *
-                  </label>
-                  <input
-                    type="text"
-                    value={equipment}
-                    onChange={(e) => setEquipment(e.target.value)}
-                    placeholder="e.g. P-204, R-201..."
-                    className="w-full bg-industrial-900 border border-industrial-800 p-2 text-white font-mono text-xs focus:outline-hidden focus:border-hazard-cyan"
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="block text-[10px] font-bold text-industrial-400 mb-1 uppercase">
+                02. ACTIVITY / REGIME
+              </label>
+              <select
+                value={activity}
+                onChange={(e) => {
+                  const val = e.target.value as ActivityType;
+                  setActivity(val);
+                  setParamState(prev => ({ ...prev, activity_type: val }));
+                }}
+                className="w-full px-2.5 py-1.5 bg-industrial-950 border border-industrial-700 text-white text-xs outline-none focus:border-hazard-cyan font-sans"
+              >
+                <option value="Line Breaking">Line Breaking / Flange Opening</option>
+                <option value="Maintenance">Mechanical Maintenance</option>
+                <option value="Hot Work">Hot Work / Welding</option>
+                <option value="Confined Space Entry">Confined Space Entry</option>
+                <option value="Equipment Isolation">Equipment Isolation / LOTO</option>
+                <option value="Startup">Plant Startup / Commissioning</option>
+                <option value="Shutdown">Plant Shutdown / Purge</option>
+                <option value="Sampling / Chemical Handling">Sampling / Chemical Handling</option>
+              </select>
+            </div>
 
-              {/* Primary Narrative Textarea */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-industrial-400 uppercase">
-                    WORKER OBSERVATION NARRATIVE (VERBATIM CAPTURE) *
-                  </label>
-                  <span className="text-[10px] text-industrial-500">
-                    DESCRIBE EXACT EVENT SEQUENCE & BARRIERS
+            <div>
+              <label className="block text-[10px] font-bold text-industrial-400 mb-1 uppercase">
+                EQUIPMENT TAG / ASSET
+              </label>
+              <input
+                type="text"
+                value={equipment}
+                onChange={(e) => {
+                  setEquipment(e.target.value);
+                  setParamState(prev => ({ ...prev, equipment: e.target.value }));
+                }}
+                placeholder="e.g. P-204 Suction Flange"
+                className="w-full px-2.5 py-1.5 bg-industrial-950 border border-industrial-700 text-white text-xs outline-none focus:border-hazard-cyan font-sans"
+              />
+            </div>
+          </div>
+
+          {/* Voice Input & Narrative Area */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-bold text-industrial-400 uppercase flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-hazard-cyan" />
+                <span>FIELD OBSERVATION NARRATIVE (VOICE OR TEXT)</span>
+              </label>
+
+              {/* Voice button */}
+              <div className="flex items-center gap-2">
+                {isRecording && (
+                  <span className="text-[10px] text-hazard-red font-bold animate-pulse">
+                    RECORDING: {recordingSeconds}s
                   </span>
-                </div>
-                <textarea
-                  rows={4}
-                  value={narrative}
-                  onChange={(e) => setNarrative(e.target.value)}
-                  placeholder="Describe what happened: e.g., 'During flange opening on feed pump P-204, hot gas oil escaped when companion studs were loosened because the upstream isolation valve passed and zero-energy wasn't checked...'"
-                  className="w-full bg-industrial-900 border border-industrial-800 p-3 text-white font-sans text-xs placeholder-industrial-500 focus:outline-hidden focus:border-hazard-cyan leading-relaxed"
-                />
-              </div>
-
-              {/* Multi-modal inputs: Voice & Photo (Section 19) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {/* Voice Input */}
-                <div className="p-3 bg-industrial-900 border border-industrial-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-industrial-400 uppercase flex items-center gap-1.5">
-                      <Mic className="w-3.5 h-3.5 text-hazard-red" />
-                      VOICE RECORDER INGESTION
-                    </span>
-                    {isRecording && (
-                      <span className="text-[10px] text-hazard-red font-bold animate-pulse">
-                        REC [{recordingSeconds}s]
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Simulated Waveform if recording */}
-                  {isRecording && (
-                    <div className="flex items-center justify-center gap-1 py-1 h-7">
-                      {[12, 24, 8, 28, 16, 32, 20, 10, 26, 14, 30, 18, 8].map((h, i) => (
-                        <div
-                          key={i}
-                          className="w-1 bg-hazard-red animate-pulse"
-                          style={{ height: `${h}px`, animationDelay: `${i * 0.1}s` }}
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2">
-                    {!isRecording ? (
-                      <button
-                        type="button"
-                        onClick={handleStartVoice}
-                        className="flex-1 py-1.5 px-2.5 bg-industrial-800 hover:bg-industrial-750 text-industrial-200 border border-industrial-700 flex items-center justify-center gap-1.5 text-xs transition"
-                      >
-                        <Mic className="w-3.5 h-3.5 text-hazard-red" />
-                        <span>RECORD VOICE</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleStopVoice}
-                        className="flex-1 py-1.5 px-2.5 bg-hazard-red hover:bg-red-600 text-white font-bold flex items-center justify-center gap-1.5 text-xs transition animate-pulse"
-                      >
-                        <MicOff className="w-3.5 h-3.5" />
-                        <span>STOP RECORDING</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Optional Photo Attachment */}
-                <div className="p-3 bg-industrial-900 border border-industrial-800 space-y-2">
-                  <span className="text-[10px] text-industrial-400 uppercase flex items-center gap-1.5">
-                    <Camera className="w-3.5 h-3.5 text-hazard-cyan" />
-                    FIELD PHOTOGRAPH ATTACHMENT
-                  </span>
-                  <div
-                    onClick={() => setPhotoUploaded(!photoUploaded)}
-                    className="border border-dashed border-industrial-700 hover:border-hazard-cyan p-2.5 text-center cursor-pointer transition flex items-center justify-center gap-2"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-industrial-500" />
-                    <span className="text-[11px] text-industrial-300">
-                      {photoUploaded ? 'PHOTO ATTACHED: P-204_FLANGE.JPG ✓' : 'CLICK TO SIMULATE PHOTO UPLOAD'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* AI PROCESSING SEQUENCE (Section 19) */}
-          {isProcessing && (
-            <div className="py-6 space-y-4">
-              <div className="text-center space-y-1">
-                <div className="inline-flex p-3 bg-hazard-red-dark border border-hazard-red text-hazard-red shadow-hazard-red animate-pulse">
-                  <Cpu className="w-6 h-6" />
-                </div>
-                <h3 className="text-sm font-bold text-white tracking-widest uppercase">
-                  AI SAFETY INTELLIGENCE PIPELINE EXECUTING
-                </h3>
-                <p className="text-xs text-industrial-400 font-sans">
-                  Extracting hazards, assessing barrier hierarchies, and computing SIF precursor score
-                </p>
-              </div>
-
-              {/* 7-Step Vertical Sequence with dynamic animations */}
-              <div className="max-w-md mx-auto space-y-2 pt-2">
-                {pipelineSteps.map((stepName, idx) => {
-                  const isDone = currentStepIndex > idx;
-                  const isCurrent = currentStepIndex === idx;
-
-                  return (
-                    <div
-                      key={stepName}
-                      className={`p-2.5 border transition-all flex items-center justify-between text-xs ${
-                        isDone
-                          ? 'bg-industrial-900 border-hazard-green-border text-emerald-300'
-                          : isCurrent
-                          ? 'bg-hazard-red-dark/40 border-hazard-red text-white shadow-hazard-red animate-pulse'
-                          : 'bg-industrial-950 border-industrial-850 text-industrial-600'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[10px] w-5">0{idx + 1}</span>
-                        <span className="font-bold tracking-wider">{stepName}</span>
-                      </div>
-                      <div>
-                        {isDone && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-                        {isCurrent && <Sparkles className="w-4 h-4 text-hazard-red animate-spin" />}
-                      </div>
-                    </div>
-                  );
-                })}
+                )}
+                <button
+                  type="button"
+                  onClick={isRecording ? handleStopVoice : handleStartVoice}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold transition border ${
+                    isRecording
+                      ? 'bg-hazard-red text-white border-red-500 animate-pulse'
+                      : 'bg-industrial-800 hover:bg-industrial-750 text-hazard-cyan border-industrial-700'
+                  }`}
+                >
+                  {isRecording ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                  <span>{isRecording ? 'STOP AUDIO' : 'RECORD VOICE'}</span>
+                </button>
               </div>
             </div>
-          )}
 
-          {/* STRUCTURED RESULT VIEW (Section 20 AI Extraction View preview) */}
-          {generatedReport && (
-            <div className="space-y-3 pt-1">
-              <div className="p-3 bg-hazard-red-dark/30 border border-hazard-red flex items-center justify-between">
+            <textarea
+              rows={4}
+              value={narrative}
+              onChange={(e) => setNarrative(e.target.value)}
+              placeholder="Describe what occurred: equipment involved, pressure, material, barrier condition, worker position, or any unverified LOTO... (AI will automatically extract all 10 dataset parameters)"
+              className="w-full p-3 bg-industrial-950 border border-industrial-700 focus:border-hazard-cyan text-white text-xs outline-none font-sans leading-relaxed placeholder:text-industrial-500"
+            />
+          </div>
+
+          {/* 10-Parameter Refinery Specification Accordion */}
+          <div className="border border-industrial-800 bg-industrial-950/60 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowParametersAccordion(!showParametersAccordion)}
+              className="w-full px-4 py-2.5 flex items-center justify-between bg-industrial-950 hover:bg-industrial-900 border-b border-industrial-800 text-left transition"
+            >
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-hazard-amber" />
+                <span className="text-[11px] font-bold text-white uppercase tracking-wider">
+                  ADVANCED: 10-PARAMETER REFINERY SPECIFICATION (VIEW / ADJUST)
+                </span>
+                <span className="px-1.5 py-0.2 bg-hazard-amber/20 border border-hazard-amber/40 text-hazard-amber text-[9px] font-bold">
+                  API RP 754
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px] text-industrial-400">
+                <span>{showParametersAccordion ? 'COLLAPSE' : 'EXPAND'}</span>
+                {showParametersAccordion ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </div>
+            </button>
+
+            {showParametersAccordion && (
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3.5 text-[11px] bg-industrial-950">
                 <div>
-                  <div className="text-[10px] text-red-300 uppercase font-bold">
-                    PRECURSOR DETECTED & CLASSIFIED
-                  </div>
-                  <div className="text-base font-black text-white">
-                    {generatedReport.report_id}
-                  </div>
+                  <label className="text-[10px] text-industrial-400 block mb-1">03. UA/UC CATEGORY</label>
+                  <select
+                    value={paramState.ua_uc_category}
+                    onChange={(e) => setParamState(p => ({ ...p, ua_uc_category: e.target.value }))}
+                    className="w-full px-2 py-1 bg-industrial-900 border border-industrial-700 text-white text-xs outline-none font-sans"
+                  >
+                    <option value="Isolation/LOTO violation">Isolation/LOTO violation</option>
+                    <option value="Line-breaking violation">Line-breaking violation</option>
+                    <option value="Hydrocarbon leakage">Hydrocarbon leakage</option>
+                    <option value="Hot-work violation">Hot-work violation</option>
+                    <option value="ESD bypass">ESD bypass / Interlock defeat</option>
+                    <option value="Toxic gas release">Toxic gas release (H2S)</option>
+                    <option value="Corroded process piping">Corroded process piping</option>
+                  </select>
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] text-industrial-400 uppercase">SIF SCORE</div>
-                  <div className="text-base font-black text-hazard-red">
-                    {generatedReport.sif_score} / 5.0
-                  </div>
+
+                <div>
+                  <label className="text-[10px] text-industrial-400 block mb-1">05. PROCESS MATERIAL</label>
+                  <select
+                    value={paramState.process_material}
+                    onChange={(e) => setParamState(p => ({ ...p, process_material: e.target.value }))}
+                    className="w-full px-2 py-1 bg-industrial-900 border border-industrial-700 text-white text-xs outline-none font-sans"
+                  >
+                    <option value="Diesel">Diesel Fuel</option>
+                    <option value="Crude Oil">Crude Oil</option>
+                    <option value="Naphtha">Naphtha / Light Ends</option>
+                    <option value="Sour Gas">Sour Gas / H2S Stream</option>
+                    <option value="Hydrogen">High-Pressure Hydrogen</option>
+                    <option value="LPG">LPG / Propane</option>
+                    <option value="Vacuum Residue">Vacuum Residue (Hot Bitumen)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-industrial-400 block mb-1">05. PRESSURE CONDITION</label>
+                  <select
+                    value={paramState.pressure_condition}
+                    onChange={(e) => setParamState(p => ({ ...p, pressure_condition: e.target.value as any }))}
+                    className="w-full px-2 py-1 bg-industrial-900 border border-industrial-700 text-white text-xs outline-none font-sans"
+                  >
+                    <option value="High Pressure (2–50 bar)">High Pressure (2–50 bar)</option>
+                    <option value="Extreme Pressure (>50 bar)">Extreme Pressure (&gt;50 bar)</option>
+                    <option value="Low Pressure (<2 bar)">Low Pressure (&lt;2 bar)</option>
+                    <option value="Atmospheric">Atmospheric / Zero Energy</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-industrial-400 block mb-1">06. BARRIER / LOTO STATUS</label>
+                  <select
+                    value={paramState.barrier_status}
+                    onChange={(e) => setParamState(p => ({ ...p, barrier_status: e.target.value as any }))}
+                    className="w-full px-2 py-1 bg-industrial-900 border border-industrial-700 text-white text-xs outline-none font-sans"
+                  >
+                    <option value="Failed">Failed / Defective</option>
+                    <option value="Not Verified">Not Verified in Field</option>
+                    <option value="Missing">Missing / Omitted</option>
+                    <option value="Degraded">Degraded</option>
+                    <option value="Effective">Effective / Intact</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-industrial-400 block mb-1">08. ACTUAL CONSEQUENCE</label>
+                  <select
+                    value={paramState.actual_consequence}
+                    onChange={(e) => setParamState(p => ({ ...p, actual_consequence: e.target.value }))}
+                    className="w-full px-2 py-1 bg-industrial-900 border border-industrial-700 text-white text-xs outline-none font-sans"
+                  >
+                    <option value="No Injury">No Injury (Near Miss)</option>
+                    <option value="First Aid">First Aid</option>
+                    <option value="Medical Treatment">Medical Treatment</option>
+                    <option value="Lost Time Injury">Lost Time Injury</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-industrial-400 block mb-1">08. POTENTIAL WORST-CASE CONSEQUENCE</label>
+                  <select
+                    value={paramState.potential_consequence}
+                    onChange={(e) => setParamState(p => ({ ...p, potential_consequence: e.target.value }))}
+                    className="w-full px-2 py-1 bg-industrial-900 border border-industrial-700 text-white text-xs outline-none font-sans"
+                  >
+                    <option value="Fatality">Single Fatality (SIF)</option>
+                    <option value="Multiple Fatalities">Multiple Fatalities (Major SIF)</option>
+                    <option value="Major Fire">Major Fire / Explosion</option>
+                    <option value="Serious Injury">Serious Life-Altering Injury</option>
+                  </select>
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* AI EXTRACTION VIEW SIDE-BY-SIDE (Section 20) */}
-              <div className="p-3 bg-industrial-900 border border-industrial-800 space-y-2">
-                <div className="tech-label text-hazard-cyan border-b border-industrial-800 pb-1">
-                  AI EXTRACTION VIEW — UNSTRUCTURED TO STRUCTURED MAPPING
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
-                  <div className="p-1.5 bg-industrial-950 border border-industrial-850">
-                    <span className="text-industrial-500 block text-[9px]">UNIT:</span>
-                    <strong className="text-white">{generatedReport.unit}</strong>
+          {/* AI Pipeline Execution Feedback */}
+          {isProcessing && (
+            <div className="p-4 bg-industrial-950 border border-hazard-cyan/40 space-y-3">
+              <div className="flex items-center gap-2 text-hazard-cyan font-bold">
+                <Sparkles className="w-4 h-4 animate-spin" />
+                <span>EXECUTING AI REFINERY SIF PRECURSOR ENGINE...</span>
+              </div>
+              <div className="space-y-1.5">
+                {pipelineSteps.map((step, idx) => (
+                  <div key={step} className="flex items-center gap-2 text-[11px]">
+                    {idx < currentStepIndex ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : idx === currentStepIndex ? (
+                      <div className="w-3.5 h-3.5 border-2 border-hazard-cyan border-t-transparent rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <div className="w-3.5 h-3.5 border border-industrial-700 rounded-full shrink-0" />
+                    )}
+                    <span className={idx <= currentStepIndex ? 'text-white' : 'text-industrial-500'}>
+                      {step}
+                    </span>
                   </div>
-                  <div className="p-1.5 bg-industrial-950 border border-industrial-850">
-                    <span className="text-industrial-500 block text-[9px]">EQUIPMENT:</span>
-                    <strong className="text-hazard-cyan">{generatedReport.equipment}</strong>
-                  </div>
-                  <div className="p-1.5 bg-industrial-950 border border-industrial-850">
-                    <span className="text-industrial-500 block text-[9px]">ACTIVITY:</span>
-                    <strong className="text-white">{generatedReport.activity}</strong>
-                  </div>
-                  <div className="p-1.5 bg-industrial-950 border border-industrial-850">
-                    <span className="text-industrial-500 block text-[9px]">IOGP RULE:</span>
-                    <strong className="text-hazard-amber">{generatedReport.iogp_rule}</strong>
-                  </div>
-                </div>
-
-                <div className="p-2 bg-industrial-950 border border-industrial-850 text-xs">
-                  <span className="text-industrial-500 block text-[10px] uppercase">AI SUMMARY:</span>
-                  <p className="text-industrial-200 font-sans mt-0.5">&ldquo;{generatedReport.ai_summary}&rdquo;</p>
-                </div>
+                ))}
               </div>
             </div>
           )}
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-industrial-900 border-t border-industrial-800 flex items-center justify-between">
+        <div className="px-5 py-3.5 bg-industrial-950 border-t border-industrial-800 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 bg-industrial-800 hover:bg-industrial-750 text-industrial-300 text-xs font-mono transition"
+            className="px-3.5 py-1.5 bg-industrial-800 hover:bg-industrial-750 text-industrial-300 hover:text-white font-bold text-xs border border-industrial-700 transition"
           >
             CANCEL
           </button>
 
-          {!generatedReport && !isProcessing ? (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!narrative.trim()}
-              className="px-4 py-1.5 bg-hazard-red hover:bg-red-600 disabled:bg-industrial-800 disabled:text-industrial-600 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-hazard-red transition"
-            >
-              <span>SUBMIT OBSERVATION</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          ) : generatedReport ? (
-            <button
-              type="button"
-              onClick={handleCompleteFlow}
-              className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg transition"
-            >
-              <span>ACCEPT & OPEN INVESTIGATION</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!narrative.trim() || isProcessing}
+            className="flex items-center gap-2 px-5 py-2 bg-hazard-red hover:bg-red-600 text-white font-black text-xs uppercase tracking-wider transition border border-red-500 shadow-hazard-red disabled:opacity-40"
+          >
+            <span>INGEST &amp; CLASSIFY OBSERVATION</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

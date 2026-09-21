@@ -11,9 +11,15 @@ import {
   AlertTriangle,
   Radio,
   Sun,
-  Moon
+  Moon,
+  User,
+  HardHat,
+  ShieldCheck,
+  Database,
+  ArrowRightLeft
 } from 'lucide-react';
 import { IndustrialBadge } from '../common/IndustrialBadge';
+import { UserProfile, UserRole } from '../../types/safety';
 
 export type NavTab = 
   | 'OVERVIEW' 
@@ -22,7 +28,8 @@ export type NavTab =
   | 'LIFE-SAVING RULES' 
   | 'REPORTS' 
   | 'ANALYTICS' 
-  | 'ACTION TRACKER';
+  | 'ACTION TRACKER'
+  | 'FIELD_WORKER_PORTAL';
 
 interface TopNavbarProps {
   activeTab: NavTab;
@@ -35,6 +42,9 @@ interface TopNavbarProps {
   onSiteChange: (site: string) => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  currentUser: UserProfile;
+  onOpenLoginModal: () => void;
+  isBackendOnline: boolean | null;
 }
 
 export const TopNavbar: React.FC<TopNavbarProps> = ({
@@ -47,16 +57,21 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   selectedSite,
   onSiteChange,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  currentUser,
+  onOpenLoginModal,
+  isBackendOnline
 }) => {
-  const tabs: NavTab[] = [
-    'OVERVIEW',
-    'LIVE FEED',
-    'SITE RISK',
-    'LIFE-SAVING RULES',
-    'REPORTS',
-    'ANALYTICS',
-    'ACTION TRACKER'
+  const isWorker = currentUser.role === 'field_worker';
+
+  const inspectorTabs: { id: NavTab; label: string }[] = [
+    { id: 'OVERVIEW', label: 'OVERVIEW' },
+    { id: 'LIVE FEED', label: 'LIVE FEED' },
+    { id: 'SITE RISK', label: 'SITE RISK' },
+    { id: 'LIFE-SAVING RULES', label: 'LIFE-SAVING RULES' },
+    { id: 'REPORTS', label: 'REPORTS ARCHIVE' },
+    { id: 'ANALYTICS', label: 'ANALYTICS' },
+    { id: 'ACTION TRACKER', label: 'ACTION TRACKER' }
   ];
 
   return (
@@ -75,11 +90,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
                   NAV DRISHTI
                 </span>
                 <span className="hidden sm:inline-block px-1.5 py-0.2 bg-industrial-800 text-[10px] text-industrial-400 border border-industrial-700">
-                  v2.4-RC
+                  v2.5-PRO
                 </span>
               </div>
               <p className="text-[10px] text-industrial-400 tracking-tight hidden md:block">
-                AI-Driven Safety Observation & SIF Precursor Detection Platform
+                AI Process Safety &bull; 10-Parameter Dataset &bull; SIF Precursor Intelligence
               </p>
             </div>
           </div>
@@ -103,54 +118,71 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           </div>
         </div>
 
-        {/* Right Side Status Indicators */}
-        <div className="flex items-center gap-3">
-          {/* System Telemetry Indicator */}
-          <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 bg-industrial-900 border border-industrial-800">
-            <Radio className="w-3.5 h-3.5 text-hazard-cyan animate-pulse" />
-            <span className="text-[11px] text-industrial-300">
-              CORE SYSTEM: <span className="text-hazard-cyan font-semibold">ONLINE</span>
-            </span>
-            <span className="text-industrial-600">|</span>
-            <Cpu className="w-3.5 h-3.5 text-industrial-400" />
-            <span className="text-[11px] text-industrial-300">
-              AI ENGINE: <span className="text-emerald-400 font-semibold">INFERENCE READY</span>
-            </span>
+        {/* Right Side Status Indicators & Role Controls */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Database Live Status Indicator */}
+          <div 
+            onClick={onOpenLoginModal}
+            className={`cursor-pointer px-2.5 py-1 border flex items-center gap-1.5 text-[11px] font-bold transition ${
+              isBackendOnline
+                ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300'
+                : 'bg-hazard-amber-dark/30 border-hazard-amber-border text-hazard-amber'
+            }`}
+            title="Click to view database connection status and switch roles"
+          >
+            <Database className="w-3.5 h-3.5" />
+            {isBackendOnline ? (
+              <span className="hidden sm:inline">LIVE SQLITE DB (PORT 5001)</span>
+            ) : (
+              <span className="hidden sm:inline">BROWSER DB (GITHUB LIVE LINK)</span>
+            )}
+            <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping" />
           </div>
 
-          {/* DEMO MODE Badge */}
-          <div className="px-2 py-0.5 bg-hazard-amber-dark border border-hazard-amber text-hazard-amber font-mono font-bold text-[10px] tracking-widest uppercase shadow-hazard-amber">
-            DEMO MODE • SEEDED DATA
-          </div>
+          {/* User Role Badge & Switcher */}
+          <button
+            onClick={onOpenLoginModal}
+            className={`flex items-center gap-2 px-2.5 py-1 border text-xs font-bold transition ${
+              isWorker
+                ? 'bg-hazard-cyan/15 hover:bg-hazard-cyan/25 border-hazard-cyan/40 text-hazard-cyan'
+                : 'bg-hazard-amber-dark/30 hover:bg-hazard-amber-dark/50 border-hazard-amber-border text-hazard-amber'
+            }`}
+            title="Click to switch role between Field Worker and Safety Inspector"
+          >
+            {isWorker ? <HardHat className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+            <span className="uppercase">{currentUser.name}</span>
+            <span className="text-[10px] px-1 py-0.2 bg-black/40 border border-current">
+              {isWorker ? 'WORKER' : 'INSPECTOR'}
+            </span>
+            <ArrowRightLeft className="w-3 h-3 opacity-70" />
+          </button>
 
           {/* Main Theme Switcher: Black Theme vs White Theme */}
           <div 
             className="flex items-center bg-industrial-900 border border-industrial-700 p-0.5 rounded-xs"
-            title="Toggle website main theme between Black and White"
+            title="Toggle theme between Black and White"
           >
             <button
               onClick={() => { if (theme !== 'dark') onToggleTheme(); }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all ${
+              className={`flex items-center gap-1 px-2 py-0.5 text-xs font-mono font-bold transition-all ${
                 theme === 'dark'
-                  ? 'bg-industrial-800 text-hazard-cyan border border-industrial-600 shadow-xs'
-                  : 'text-industrial-400 hover:text-industrial-200 opacity-60 hover:opacity-100'
+                  ? 'bg-industrial-800 text-hazard-cyan border border-industrial-600'
+                  : 'text-industrial-400 hover:text-industrial-200'
               }`}
-              aria-label="Switch to Black Theme"
             >
-              <Moon className="w-3.5 h-3.5" />
-              <span>BLACK</span>
+              <Moon className="w-3 h-3" />
+              <span className="hidden sm:inline">BLACK</span>
             </button>
             <button
               onClick={() => { if (theme !== 'light') onToggleTheme(); }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all ${
+              className={`flex items-center gap-1 px-2 py-0.5 text-xs font-mono font-bold transition-all ${
                 theme === 'light'
-                  ? 'bg-amber-100 text-amber-950 border border-amber-300 shadow-xs'
-                  : 'text-industrial-400 hover:text-industrial-200 opacity-60 hover:opacity-100'
+                  ? 'bg-amber-100 text-amber-950 border border-amber-300'
+                  : 'text-industrial-400 hover:text-industrial-200'
               }`}
-              aria-label="Switch to White Theme"
             >
-              <Sun className="w-3.5 h-3.5 text-amber-600" />
-              <span>WHITE</span>
+              <Sun className="w-3 h-3 text-amber-600" />
+              <span className="hidden sm:inline">WHITE</span>
             </button>
           </div>
 
@@ -158,13 +190,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
           <button
             onClick={onOpenSearch}
             className="flex items-center gap-1.5 px-2.5 py-1 bg-industrial-900 hover:bg-industrial-800 border border-industrial-700 text-industrial-300 hover:text-white transition text-xs"
-            title="Search observations, equipment, barriers (Ctrl+K)"
+            title="Search observations (Ctrl+K)"
           >
             <Search className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">SEARCH</span>
-            <kbd className="hidden md:inline px-1 py-0.2 bg-industrial-800 border border-industrial-700 text-[9px] text-industrial-400">
-              /
-            </kbd>
           </button>
 
           {/* New Observation CTA */}
@@ -173,7 +202,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
             className="flex items-center gap-1.5 px-3 py-1 bg-hazard-red hover:bg-red-600 text-white font-mono font-bold text-xs uppercase tracking-wider transition border border-red-500 shadow-hazard-red"
           >
             <PlusCircle className="w-3.5 h-3.5" />
-            <span>NEW OBSERVATION</span>
+            <span>REPORT</span>
           </button>
 
           {/* Notification Icon */}
@@ -189,46 +218,61 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
               </span>
             )}
           </button>
-
-          {/* User Profile */}
-          <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-industrial-800">
-            <div className="w-6 h-6 bg-industrial-800 border border-industrial-700 flex items-center justify-center text-industrial-300 font-bold text-[10px]">
-              HS
-            </div>
-            <div className="text-[10px] leading-tight">
-              <div className="text-industrial-200 font-semibold">Y. KARWA</div>
-              <div className="text-industrial-500">LEAD HSSE SUPV</div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Main Navigation Bar */}
-      <nav className="px-4 flex items-center gap-1 overflow-x-auto no-scrollbar bg-industrial-900/60">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab;
-          return (
+      {/* Role-Filtered Tab Navigation Bar */}
+      <nav className="px-4 py-1.5 flex items-center gap-1 overflow-x-auto whitespace-nowrap text-xs font-mono border-b border-industrial-800 bg-industrial-950/70">
+        {isWorker ? (
+          /* Field Worker Navigation Tabs */
+          <>
             <button
-              key={tab}
-              onClick={() => onTabChange(tab)}
-              className={`relative px-4 py-2.5 font-mono text-xs font-semibold tracking-wider whitespace-nowrap transition-all border-b-2 uppercase ${
-                isActive
-                  ? 'border-hazard-red text-white bg-industrial-850/80 shadow-[inset_0_-2px_0_0_#ef4444]'
-                  : 'border-transparent text-industrial-400 hover:text-industrial-200 hover:bg-industrial-850/40'
+              onClick={() => onTabChange('FIELD_WORKER_PORTAL')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 font-bold transition border ${
+                activeTab === 'FIELD_WORKER_PORTAL'
+                  ? 'bg-hazard-cyan/20 text-hazard-cyan border-hazard-cyan/50 shadow-xs'
+                  : 'text-industrial-300 hover:text-white border-transparent hover:bg-industrial-850'
               }`}
             >
-              {tab}
-              {tab === 'LIVE FEED' && (
-                <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-hazard-red animate-ping" />
-              )}
-              {tab === 'ACTION TRACKER' && (
-                <span className="ml-1.5 px-1 py-0.2 bg-hazard-amber-dark text-hazard-amber border border-hazard-amber-border text-[9px]">
-                  3 DUE
-                </span>
-              )}
+              <HardHat className="w-3.5 h-3.5" />
+              <span>MY OBSERVATIONS &amp; STATUS TRACKER</span>
             </button>
-          );
-        })}
+
+            <button
+              onClick={onOpenNewObservation}
+              className="flex items-center gap-1.5 px-3 py-1.5 font-bold text-hazard-red hover:text-red-400 border border-hazard-red/30 bg-hazard-red/10 transition"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ REPORT NEW HAZARD</span>
+            </button>
+
+            <button
+              onClick={onOpenNotifications}
+              className="flex items-center gap-1.5 px-3 py-1.5 font-bold text-industrial-300 hover:text-white border border-transparent hover:bg-industrial-850 transition"
+            >
+              <Bell className="w-3.5 h-3.5 text-hazard-amber" />
+              <span>SAFETY ALERTS &amp; NOTICES ({unreadAlertsCount})</span>
+            </button>
+          </>
+        ) : (
+          /* Safety Inspector Navigation Tabs */
+          inspectorTabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`px-3 py-1.5 font-bold transition border ${
+                  isActive
+                    ? 'bg-industrial-800 text-hazard-cyan border-industrial-600 shadow-xs'
+                    : 'text-industrial-400 hover:text-industrial-200 border-transparent hover:bg-industrial-850'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })
+        )}
       </nav>
     </header>
   );
